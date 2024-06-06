@@ -1,0 +1,4 @@
+curl -sSL https://bit.ly/2ysbOFE | bash -s
+cd fabric-samples/test-network
+./network.sh up createChannel -c mychannel -ca
+./network.sh deployCC -ccn evault -ccp ../chaincode/evault -ccl javascript
