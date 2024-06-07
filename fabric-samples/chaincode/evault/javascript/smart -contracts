@@ -1,0 +1,72 @@
+'use strict';
+
+const { Contract } = require('fabric-contract-api');
+
+class EvaultContract extends Contract {
+    async initLedger(ctx) {
+        console.info('============= START : Initialize Ledger ===========');
+        const records = [
+            {
+                id: 'REC1',
+                owner: 'Client1',
+                content: 'Legal document content here',
+                timestamp: new Date().toISOString(),
+            },
+            // Add more records
+        ];
+        for (let i = 0; i < records.length; i++) {
+            await ctx.stub.putState(records[i].id, Buffer.from(JSON.stringify(records[i])));
+            console.info('Added <--> ', records[i]);
+        }
+        console.info('============= END : Initialize Ledger ===========');
+    }
+
+    async createRecord(ctx, id, owner, content) {
+        const record = {
+            id,
+            owner,
+            content,
+            timestamp: new Date().toISOString(),
+        };
+        await ctx.stub.putState(id, Buffer.from(JSON.stringify(record)));
+        return JSON.stringify(record);
+    }
+
+    async queryRecord(ctx, id) {
+        const recordAsBytes = await ctx.stub.getState(id);
+        if (!recordAsBytes || recordAsBytes.length === 0) {
+            throw new Error(`${id} does not exist`);
+        }
+        return recordAsBytes.toString();
+    }
+
+    async queryAllRecords(ctx) {
+        const startKey = '';
+        const endKey = '';
+        const iterator = await ctx.stub.getStateByRange(startKey, endKey);
+
+        const allResults = [];
+        while (true) {
+            const res = await iterator.next();
+
+            if (res.value && res.value.value.toString()) {
+                const Key = res.value.key;
+                let Record;
+                try {
+                    Record = JSON.parse(res.value.value.toString());
+                } catch (err) {
+                    console.log(err);
+                    Record = res.value.value.toString();
+                }
+                allResults.push({ Key, Record });
+            }
+            if (res.done) {
+                console.log('end of data');
+                await iterator.close();
+                return JSON.stringify(allResults);
+            }
+        }
+    }
+}
+
+module.exports = EvaultContract;
